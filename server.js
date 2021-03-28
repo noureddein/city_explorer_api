@@ -4,9 +4,7 @@ const PORT = 3000;
 // Create  aserer apllication
 const app = express();
 
-//setup a route to handle
-//handle the get request to the '/' path
-app.get('/', handleRequest);
+
 
 //Request are handle by callbacks
 //express will pass parameter to the callbacks
@@ -16,8 +14,24 @@ app.get('/', handleRequest);
 */
 const handleRequest = (request, response) => {
   console.log(request.query);
-  response.send('ok');
+  response.send('<h1>About<h1>');
 };
+
+
+//setup a route to handle
+//handle the get request to the '/' path
+//call the handle function
+app.get('/about', handleRequest);
+
+app.get('/locations', (req, res) => {
+  const locations = require('./data/location.json');
+  // console.log(req);
+  res.json(locations);
+
+});
+
+
+
 
 app.listen(PORT, () => {
   console.log('listen from app.listen');
