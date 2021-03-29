@@ -227,3 +227,12 @@ $RECYCLE.BIN/
 # Visual Studio 2015/2017 cache/options directory
 .vs/
 # End of https://www.gitignore.io/api/node,macos,linux,windows,webstorm,visualstudiocode
+
+# return them to original
+data/
+package-lock.json
+index.js
+package.json
+server.js
+test.js
+

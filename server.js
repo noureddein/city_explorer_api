@@ -1,38 +1,71 @@
 //load the express module
 const express = require('express');
-const PORT = 3000;
-// Create  aserer apllication
+const PORT = process.env.PORT || 3000;
+require('dotenv').config();
 const app = express();
+const cors = require('cors');
+app.use(cors());
+//Route
+app.get('/location', locationHandler);
+app.get('/weather', weatherHandler);
+// app.get('/location', errorHandler);
+
+//Location Handler
+function locationHandler(req, res) {
+  res.status(200).send(getLocationData('Amman'));
+}
+
+//Constructor function for location
+function City(search_query, formatted_query, latitude, longitude) {
+  this.search_query = search_query;
+  this.formatted_query = formatted_query;
+  this.latitude = latitude;
+  this.longitude = longitude;
+}
+
+// Prepare location data and make it Object
+function getLocationData(cityName) {
+  //Get the data from the JSON file
+  const locationData = require('./data/location.json');
+  const exact_City_Name = locationData[0].display_name;
+  const latitude = locationData[0].lat;
+  const longitude = locationData[0].lat;
+  //Make the date and return it as object
+  const reqLocationData = new City(cityName, exact_City_Name, latitude, longitude);
+  return reqLocationData;
+}
+
+//-------------------------------------------------
+
+//Weather handler
+function weatherHandler(req, res) {
+  res.status(200).send(getWeatherData('Amman'));
+}
 
 
+//Constructor function for weather
+function CityWeather(search_qury, forecast, time) {
+  this.search_qury = search_qury;
+  this.forecast = forecast;
+  this.time = time;
+}
 
-//Request are handle by callbacks
-//express will pass parameter to the callbacks
-/*
- *req / request => All the information about the request the server receive
- * res / response => method which can be called to create and send a response to the clint
-*/
-const handleRequest = (request, response) => {
-  console.log(request.query);
-  response.send('<h1>About<h1>');
-};
+function getWeatherData(cityName) {
+  const locationData = require('./data/weather.json');
+  let weatherObjects = [];
+  for (let i = 0; i < 5; i++) {
+    let date = new Date(locationData.data[i].datetime).toString();
+    let weatherData = locationData.data[i].weather['description'];
+    weatherObjects.push(
+      new CityWeather(cityName, weatherData, date.slice(date.indexOf(' ', 11) + 1)));
+  }
+  return weatherObjects;
+}
 
-
-//setup a route to handle
-//handle the get request to the '/' path
-//call the handle function
-app.get('/about', handleRequest);
-
-app.get('/locations', (req, res) => {
-  const locations = require('./data/location.json');
-  // console.log(req);
-  res.json(locations);
-
-});
 
 
 
 
 app.listen(PORT, () => {
-  console.log('listen from app.listen');
+  console.log(`Open Port ${PORT}`);
 });
