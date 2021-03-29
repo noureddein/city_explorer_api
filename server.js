@@ -8,11 +8,13 @@ app.use(cors());
 //Route
 app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
-// app.get('/location', errorHandler);
+app.get('*', errorHandler);
 
 //Location Handler
 function locationHandler(req, res) {
-  res.status(200).send(getLocationData('Amman'));
+  let getCity = req.query.city;
+  res.status(200).send(getLocationData(getCity));
+
 }
 
 //Constructor function for location
@@ -39,7 +41,8 @@ function getLocationData(cityName) {
 
 //Weather handler
 function weatherHandler(req, res) {
-  res.status(200).send(getWeatherData('Amman'));
+  let getCity = req.query.city;
+  res.status(200).send(getWeatherData(getCity));
 }
 
 
@@ -62,8 +65,10 @@ function getWeatherData(cityName) {
   return weatherObjects;
 }
 
-
-
+//Error Handler function
+function errorHandler(req, res) {
+  res.status(500).send('Sorry, something went wrong');
+}
 
 
 app.listen(PORT, () => {
