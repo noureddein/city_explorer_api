@@ -60,7 +60,7 @@ function getWeatherData(cityName) {
     let date = new Date(locationData.data[i].datetime).toString();
     let weatherData = locationData.data[i].weather['description'];
     weatherObjects.push(
-      new CityWeather(cityName, weatherData, date.slice(date.indexOf(' ', 11) + 1)));
+      new CityWeather(cityName, weatherData, date.match(/[A-Za-z].+[0-9].(2020)/g).join()));
   }
   return weatherObjects;
 }
