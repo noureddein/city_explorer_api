@@ -1,56 +1,88 @@
-//load the express module
-const express = require('express');
-const cors = require('cors');
+// Load Environment Variables from the .env file
 require('dotenv').config();
 
-// Create a serer apllication
-const app = express();
+// Application Dependencies
+const express = require('express');
+const cors = require('cors');
+const superagent = require('superagent');
+// const superagent = require('superagent');
 
-//create port to listen to the response
+// Application Setup
 const PORT = process.env.PORT || 3000;
-
-//for securty
+const app = express();
 app.use(cors());
 
-//Request are handle by callbacks
-//express will pass parameter to the callbacks
-/*
- *req / request => All the information about the request the server receive
- * res / response => method which can be called to create and send a response to the clint
-*/
 
-app.get('/location', handleLocation);
+//Route Definitions
+app.get('/location', locationHandler);
+app.get('/weather', weatherHandler);
+app.get('*', errorHandler);
 
-function handleLocation(request, response) {
-  let searchForCity = request.query.city;
-  let createCityObj = getLocationInfo(searchForCity);
-  try {
-    response.status(200).send(createCityObj);
-  } catch (error) {
-    response.status(500).send(`There is somthing wrong ${error}`);
-  }
+//Location Handler
+function locationHandler(req, res) {
+  let getCity = req.query.city;
+  res.status(200).send(getLocationData(getCity));
+
 }
 
-
-//Build the Constructer function
-
-function CreateLocationObj(city, display_name, latitude, longitude) {
-  this.search_query = city;
-  this.formatted_query = display_name;
+//Constructor function for location
+function City(search_query, formatted_query, latitude, longitude) {
+  this.search_query = search_query;
+  this.formatted_query = formatted_query;
   this.latitude = latitude;
   this.longitude = longitude;
 }
 
-function getLocationInfo(searchForCity) {
-  const requireLocationData = require('./data/location.json');
-  let name = requireLocationData[0].display_name;
-  let latitude = requireLocationData[0].lat;
-  let longitude = requireLocationData[0].lon;
-  const obje = new CreateLocationObj(searchForCity, name, latitude, longitude);
-  return obje;
-
+// Prepare location data and make it Object
+function getLocationData(cityName) {
+  //Get the data from the JSON file
+  const locationData = require('./data/location.json');
+  const exact_City_Name = locationData[0].display_name;
+  const latitude = locationData[0].lat;
+  const longitude = locationData[0].lat;
+  //Make the date and return it as object
+  const reqLocationData = new City(cityName, exact_City_Name, latitude, longitude);
+  return reqLocationData;
 }
 
+//-------------------------------------------------
+
+//Weather handler
+async function weatherHandler(req, res) {
+  let getCity = req.query.city;
+  let key = process.env.WEATHER_API_KEY;
+  let url = `https://api.weatherbit.io/v2.0/current?lat=35.7796&lon=-78.6382&key=${key}&include=minutely`;
+  const weatherData = await superagent.get(url);
+  console.log(weatherData);
+  res.json(weatherData.text);
+}
+
+
+//Constructor function for weather
+function CityWeather(search_qury, forecast, time) {
+  this.search_qury = search_qury;
+  this.forecast = forecast;
+  this.time = time;
+}
+
+function getWeatherData(cityName) {
+  const locationData = require('./data/weather.json');
+  let weatherObjects = [];
+  for (let i = 0; i < 5; i++) {
+    let date = new Date(locationData.data[i].datetime).toString();
+    let weatherData = locationData.data[i].weather['description'];
+    weatherObjects.push(
+      new CityWeather(cityName, weatherData, date.match(/[A-Za-z].+[0-9].(2020)/g).join()));
+  }
+  return weatherObjects;
+}
+
+//Error Handler function
+function errorHandler(req, res) {
+  res.status(500).send('Sorry, something went wrong');
+}
+
+
 app.listen(PORT, () => {
-  console.log(`listen from app.listen Port No. ${PORT}`);
+  console.log(`Open Port ${PORT}`);
 });
