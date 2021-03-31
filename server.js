@@ -26,12 +26,11 @@ app.get('*', errorHandler);
 //Location Handler
 async function locationHandler(req, res) {
   try {
-    let getCity = req.query.city;
+    let getCity = req.query.search_query;
     let url = `https://us1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${getCity}&format=json&limit=1`;
     const locationData = await superAgent.get(url);
     const apiData = JSON.parse(locationData.text);
     res.status(200).send(new City(getCity, apiData[0].display_name, apiData[0].lat, apiData[0].lon));
-
   } catch (error) {
     res.status(404).send('Something went wrong in LOCATION route')
   }
