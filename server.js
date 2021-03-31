@@ -3,10 +3,8 @@ require('dotenv').config();
 
 // Application Dependencies
 const express = require('express');
-
 const cors = require('cors');
 const superAgent = require('superagent');
-const { json } = require('express');
 // const superagent = require('superagent');
 
 // Application Setup
@@ -95,11 +93,7 @@ function CityWeather(description, time) {
   this.forecast = description;
   this.time = time;
 }
-=======
-const PORT = process.env.PORT || 3000;
-require('dotenv').config();
-const app = express();
-const cors = require('cors');
+
 app.use(cors());
 //Route
 app.get('/location', locationHandler);
