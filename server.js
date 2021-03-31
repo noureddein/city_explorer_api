@@ -1,56 +1,103 @@
-//load the express module
-const express = require('express');
-const cors = require('cors');
+// Load Environment Variables from the .env file
 require('dotenv').config();
 
-// Create a serer apllication
-const app = express();
+// Application Dependencies
+const express = require('express');
+const cors = require('cors');
+const superAgent = require('superagent');
+// const superagent = require('superagent');
 
-//create port to listen to the response
+// Application Setup
 const PORT = process.env.PORT || 3000;
-
-//for securty
+const app = express();
 app.use(cors());
 
-//Request are handle by callbacks
-//express will pass parameter to the callbacks
-/*
- *req / request => All the information about the request the server receive
- * res / response => method which can be called to create and send a response to the clint
-*/
+//KEYS
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 
-app.get('/location', handleLocation);
+//Route Definitions
+app.get('/location', locationHandler);
+app.get('/weather', weatherHandler);
+app.get('*', errorHandler);
 
-function handleLocation(request, response) {
-  let searchForCity = request.query.city;
-  let createCityObj = getLocationInfo(searchForCity);
+//Location Handler
+async function locationHandler(req, res) {
   try {
-    response.status(200).send(createCityObj);
+    console.log(req.query);
+    let getCity = req.query.city;
+    let url = `https://us1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${getCity}&format=json&limit=1`;
+    const locationData = await superAgent.get(url);
+    const apiData = JSON.parse(locationData.text);
+    res.status(200).send(apiData);
   } catch (error) {
-    response.status(500).send(`There is somthing wrong ${error}`);
+    res.status(404).send('Something went wrong in LOCATION route')
   }
+
 }
 
-
-//Build the Constructer function
-
-function CreateLocationObj(city, display_name, latitude, longitude) {
-  this.search_query = city;
-  this.formatted_query = display_name;
+//Constructor function for location
+function City(search_query, formatted_query, latitude, longitude) {
+  this.search_query = search_query;
+  this.formatted_query = formatted_query;
   this.latitude = latitude;
   this.longitude = longitude;
 }
 
-function getLocationInfo(searchForCity) {
-  const requireLocationData = require('./data/location.json');
-  let name = requireLocationData[0].display_name;
-  let latitude = requireLocationData[0].lat;
-  let longitude = requireLocationData[0].lon;
-  const obje = new CreateLocationObj(searchForCity, name, latitude, longitude);
-  return obje;
-
+// Prepare location data and make it Object
+function getLocationData(cityName) {
+  //Get the data from the JSON file
+  const locationData = require('./data/location.json');
+  const exact_City_Name = locationData[0].display_name;
+  const latitude = locationData[0].lat;
+  const longitude = locationData[0].lat;
+  //Make the date and return it as object
+  const reqLocationData = new City(cityName, exact_City_Name, latitude, longitude);
+  return reqLocationData;
 }
 
+//-------------------------------------------------
+
+//Weather handler
+// function weatherHandler(req, res) {
+//   let getCity = req.query.city;
+//   res.status(200).send(getWeatherData(getCity));
+// }
+
+
+async function weatherHandler(req, res) {
+  try {
+    console.log(req.query)
+    let getCity = req.query.search_query;
+    let url = `https://api.weatherbit.io/v2.0/forecast/daily?city=amman&key=${WEATHER_API_KEY}`;
+    const weatherData = await superAgent.get(url);
+    let apiData = JSON.parse(weatherData.text).data;
+    const forecast = apiData.map(item => {
+      let date = new Date(apiData[0]['datetime']).toString();
+      let reqDate = date.match(/[A-Za-z].+[0-9].(2021)/g).join();
+      return new CityWeather(item.weather['description'], reqDate)
+    });
+    res.status(200).send(forecast);
+  } catch (error) {
+    res.status(404).send('Something went wrong in weather route!')
+  }
+}
+
+
+//Constructor function for weather
+function CityWeather(description, time) {
+  // this.search_qeury = search_qeury;
+  this.forecast = description;
+  this.time = time;
+}
+
+
+//Error Handler function
+function errorHandler(req, res) {
+  res.status(500).send('Sorry, something went wrong');
+}
+
+
 app.listen(PORT, () => {
-  console.log(`listen from app.listen Port No. ${PORT}`);
+  console.log(`Open Port ${PORT}`);
 });
