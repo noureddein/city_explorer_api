@@ -5,6 +5,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const superAgent = require('superagent');
+const { json } = require('express');
 // const superagent = require('superagent');
 
 // Application Setup
@@ -15,21 +16,23 @@ app.use(cors());
 //KEYS
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
+const PARK_KEY = process.env.PARK_KEY;
 
 //Route Definitions
 app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
+app.get('/parks', parksHandler);
 app.get('*', errorHandler);
 
 //Location Handler
 async function locationHandler(req, res) {
   try {
-    console.log(req.query);
     let getCity = req.query.city;
     let url = `https://us1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${getCity}&format=json&limit=1`;
     const locationData = await superAgent.get(url);
     const apiData = JSON.parse(locationData.text);
-    res.status(200).send(apiData);
+    res.status(200).send(new City(getCity, apiData[0].display_name, apiData[0].lat, apiData[0].lon));
+
   } catch (error) {
     res.status(404).send('Something went wrong in LOCATION route')
   }
@@ -44,31 +47,32 @@ function City(search_query, formatted_query, latitude, longitude) {
   this.longitude = longitude;
 }
 
-// Prepare location data and make it Object
-function getLocationData(cityName) {
-  //Get the data from the JSON file
-  const locationData = require('./data/location.json');
-  const exact_City_Name = locationData[0].display_name;
-  const latitude = locationData[0].lat;
-  const longitude = locationData[0].lat;
-  //Make the date and return it as object
-  const reqLocationData = new City(cityName, exact_City_Name, latitude, longitude);
-  return reqLocationData;
+async function parksHandler(req, res) {
+  try {
+    url = `https://developer.nps.gov/api/v1/parks?api_key=${PARK_KEY}&q=${req.query.search_query}`;
+    const getData = await superAgent.get(url);
+    const apiData = (getData.body.data);
+    const objArray = apiData.map(item => new Parks(item.fullName, item.addresses[0].line1, item.description, item.url));
+    res.status(200).send(objArray);
+  } catch (error) {
+    res.status(505).send('Something went wrong in PARKS route')
+  }
+}
+
+// Parks constructor
+function Parks(name, address, description, url) {
+  this.name = name;
+  this.address = address;
+  this.fee = '0.00';
+  this.description = description;
+  this.url = url;
 }
 
 //-------------------------------------------------
 
-//Weather handler
-// function weatherHandler(req, res) {
-//   let getCity = req.query.city;
-//   res.status(200).send(getWeatherData(getCity));
-// }
-
-
 async function weatherHandler(req, res) {
   try {
-    console.log(req.query)
-    let getCity = req.query.search_query;
+    // let getCity = req.query.search_query;
     let url = `https://api.weatherbit.io/v2.0/forecast/daily?city=amman&key=${WEATHER_API_KEY}`;
     const weatherData = await superAgent.get(url);
     let apiData = JSON.parse(weatherData.text).data;
