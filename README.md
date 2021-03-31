@@ -3,6 +3,10 @@
 **Author**: Nour Eddein Al A bassi
 **Version**: 1.0.0 (increment the patch/fix version number if you make more commits past your first submission)
 
+## Deployed Site
+
+[Deployed](https://city-explorer-app-lab06.herokuapp.com/)
+
 # Tello
 
 [Trello list](https://trello.com/b/khrbe3Zo/lab06)
