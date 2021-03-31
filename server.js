@@ -3,6 +3,7 @@ require('dotenv').config();
 
 // Application Dependencies
 const express = require('express');
+
 const cors = require('cors');
 const superAgent = require('superagent');
 const { json } = require('express');
@@ -94,6 +95,69 @@ function CityWeather(description, time) {
   this.forecast = description;
   this.time = time;
 }
+=======
+const PORT = process.env.PORT || 3000;
+require('dotenv').config();
+const app = express();
+const cors = require('cors');
+app.use(cors());
+//Route
+app.get('/location', locationHandler);
+app.get('/weather', weatherHandler);
+// app.get('/location', errorHandler);
+
+//Location Handler
+function locationHandler(req, res) {
+  res.status(200).send(getLocationData('Amman'));
+}
+
+//Constructor function for location
+function City(search_query, formatted_query, latitude, longitude) {
+  this.search_query = search_query;
+  this.formatted_query = formatted_query;
+  this.latitude = latitude;
+  this.longitude = longitude;
+}
+
+// Prepare location data and make it Object
+function getLocationData(cityName) {
+  //Get the data from the JSON file
+  const locationData = require('./data/location.json');
+  const exact_City_Name = locationData[0].display_name;
+  const latitude = locationData[0].lat;
+  const longitude = locationData[0].lat;
+  //Make the date and return it as object
+  const reqLocationData = new City(cityName, exact_City_Name, latitude, longitude);
+  return reqLocationData;
+}
+
+//-------------------------------------------------
+
+//Weather handler
+function weatherHandler(req, res) {
+  res.status(200).send(getWeatherData('Amman'));
+}
+
+
+//Constructor function for weather
+function CityWeather(search_qury, forecast, time) {
+  this.search_qury = search_qury;
+  this.forecast = forecast;
+  this.time = time;
+}
+
+function getWeatherData(cityName) {
+  const locationData = require('./data/weather.json');
+  let weatherObjects = [];
+  for (let i = 0; i < 5; i++) {
+    let date = new Date(locationData.data[i].datetime).toString();
+    let weatherData = locationData.data[i].weather['description'];
+    weatherObjects.push(
+      new CityWeather(cityName, weatherData, date.slice(date.indexOf(' ', 11) + 1)));
+  }
+  return weatherObjects;
+}
+
 
 
 //Error Handler function
