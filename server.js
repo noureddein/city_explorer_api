@@ -5,7 +5,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const superAgent = require('superagent');
-const { json } = require('express');
 // const superagent = require('superagent');
 
 // Application Setup
