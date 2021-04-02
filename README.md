@@ -1,29 +1,35 @@
-# Lab: 06 - Node, npm, and Express
+Number and name of feature: Writing my code
 
-**Author**: Nour Eddein Al A bassi
-**Version**: 1.0.0 (increment the patch/fix version number if you make more commits past your first submission)
+Estimate of time needed to complete: 2 hours
 
-## Deployed Site
+Start time: 6:00 PM
 
-[Deployed](https://city-explorer-app-lab06.herokuapp.com/)
+Finish time: 8:20 PM
 
-# Tello
-
-[Trello list](https://trello.com/b/khrbe3Zo/lab06)
+Actual time needed to complete: 2:20
 
 ## Overview
 
-<!-- Provide a high level overview of what this application is and why you are building it, beyond the fact that it's an assignment for this class. (i.e. What's your problem domain?) -->
-
-Buila an API to git data from City Explorer Application server
+Build server to git data from websites provides APIs code and send it to City Explore application
 
 ## Getting Started
 
 <!-- What are the steps that a user must take in order to build this app on their own machine and get it running? -->
 
+- install node packages and libraries
+- have an APIs key
+- build the environment
+- add routes handlers
+- add ports
+- install dependencies
+
 ## Architecture
 
 <!-- Provide a detailed description of the application design. What technologies (languages, libraries, etc) you're using, and any other relevant design information. -->
+
+- JavaScript
+- Node.js
+- Node modules libraries (express, dotenv, cors, superagent)
 
 ## Change Log
 
