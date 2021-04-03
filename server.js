@@ -3,11 +3,15 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const superAgent = require('superagent');
+const { json } = require('express');
+const pg = require('pg');
 
 // Application Setup
 const PORT = process.env.PORT || 3000;
+const DATABASE_URL = process.env.DATABASE_URL;
 const app = express();
 app.use(cors());
+const client = new pg.Client(DATABASE_URL);
 
 //KEYS
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
@@ -23,21 +27,38 @@ app.get('*', errorHandler);
 //----------------------------------------------
 
 //Location Handler
-async function locationHandler(req, res) {
-  try {
-    let getCity = req.query.city;
-    let url = `https://us1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=amman&format=json`;
-    // let url = `https://us1.locationiq.com/v1/search.php?key=pk.9e079e96352c63d18cf387532fa6b9ad&q=seattle&format=json`;
-    const locationData = await superAgent.get(url);
-    const apiData = JSON.parse(locationData.text);
-    console.log(superAgent.get(url))
-    res.send(superAgent.get(url));
-    let aaa = new City(getCity, apiData[0].display_name, apiData[0].lat, apiData[0].lon);
-    console.log(aaa);
-    res.status(200).send(new City(getCity, apiData[0].display_name, apiData[0].lat, apiData[0].lon));
-  } catch (error) {
-    res.status(404).send('Something went wrong in LOCATION route')
-  }
+function locationHandler(req, res) {
+  //get city from query
+  let getCity = req.query.city;
+
+  // use city to request data from Database
+  const search_city_DB = 'SELECT * FROM city WHERE search_query = $1;'; //Here we don't use ${city} because of security issus
+  const sqlArray = [getCity];
+
+  client.query(search_city_DB, sqlArray)
+    .then(getDataFromDB => {
+      let url = `https://eu1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${getCity}&format=json`;
+      if (getDataFromDB.rowCount === 0) {
+        superAgent.get(url).then(data => {
+          console.log(data);
+          res.send('hi');
+          // const geoData = data.text;
+
+          // const apiData = JSON.parse(geoData);
+
+          // res.status(200).send(new City(getCity, 
+          //   apiData[0].display_name, apiData[0].lat, apiData[0].lon));
+
+        }).catch(error => {
+          res.status(404).send(`Something went wrong in LOCATION route ${error}`);
+        });
+      } else {
+        const data = getDataFromDB.rows[0];
+        const city_location = new City(getCity, data.formatted_query, data.latitude, data.longitude);
+      }
+    });
+
+
 }
 
 //Constructor function for location
@@ -48,19 +69,40 @@ function City(search_query, formatted_query, latitude, longitude) {
   this.longitude = longitude;
 }
 
+//-------------------------------------------------
+
+function weatherHandler(req, res) {
+  let getCity = req.query.search_query;
+  let url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${getCity}&key=${WEATHER_API_KEY}`;
+  superAgent.get(url).then(data => {
+    const weatherData = JSON.parse(data.text).data;
+    const weatherArray = weatherData.map(eachDay => new CityWeather(eachDay.weather.description, eachDay.datetime));
+    res.status(200).send(weatherArray);
+  }).catch((error) => res.status(500).send(`Something want wrong in ${error}`));
+
+}
+
+//Constructor function for weather
+function CityWeather(description, time) {
+  this.forecast = description;
+  this.time = time;
+}
+
+
 //-------------------------------------------------------
 
 //Parks handler function
-async function parksHandler(req, res) {
-  try {
-    url = `https://developer.nps.gov/api/v1/parks?api_key=${PARK_KEY}&q=${req.query.search_query}`;
-    const getData = await superAgent.get(url);
-    const apiData = (getData.body.data);
-    const objArray = apiData.map(item => new Parks(item.fullName, item.addresses[0].line1, item.description, item.url));
-    res.status(200).send(objArray);
-  } catch (error) {
-    res.status(505).send('Something went wrong in PARKS route')
-  }
+function parksHandler(req, res) {
+  const getCity = req.query.search_query;
+  const url = `https://developer.nps.gov/api/v1/parks?api_key=${PARK_KEY}&q=${getCity}`;
+  superAgent.get(url).then(data => {
+    const parksData = data.body.data;
+    const allParks = parksData.map(eachPark => new Parks(eachPark.fullName, eachPark.addresses[0].line1, eachPark.description, eachPark.url));
+    res.status(200).send(allParks);
+  }).catch(error => {
+    res.status(500).send(`Something went wrong in PARKS route ${error}`);
+  });
+
 }
 
 // Parks constructor
@@ -72,31 +114,6 @@ function Parks(name, address, description, url) {
   this.url = url;
 }
 
-//-------------------------------------------------
-
-async function weatherHandler(req, res) {
-  try {
-    let getCity = req.query.search_query;
-    let url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${getCity}&key=${WEATHER_API_KEY}`;
-    const weatherData = await superAgent.get(url);
-    let apiData = JSON.parse(weatherData.text).data;
-    const forecast = apiData.map(item => {
-      let date = new Date(apiData[0]['datetime']).toString();
-      let reqDate = date.match(/[A-Za-z].+[0-9].(2021)/g).join();
-      return new CityWeather(item.weather['description'], reqDate)
-    });
-    res.status(200).send(forecast);
-  } catch (error) {
-    res.status(404).send('Something went wrong in weather route!')
-  }
-}
-
-//Constructor function for weather
-function CityWeather(description, time) {
-  // this.search_query = search_query;
-  this.forecast = description;
-  this.time = time;
-}
 
 //---------------------------------------------------------
 
