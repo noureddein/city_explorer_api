@@ -1,14 +1,16 @@
 // Application Dependencies
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const superAgent = require('superagent');
-const { json } = require('express');
-require('dotenv').config();
+const pg = require('pg');//done
 
 // Application Setup
 const PORT = process.env.PORT || 3000;
+const DATABASE_URL = process.env.DATABASE_URL;
 const app = express();
 app.use(cors());
+const client = new pg.Client(DATABASE_URL);
 
 //KEYS
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
@@ -26,13 +28,30 @@ app.get('*', errorHandler);
 //Location Handler
 function locationHandler(req, res) {
   let getCity = req.query.city;
-  let url = `https://eu1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${getCity}&format=json`;
-  superAgent.get(url).then(data => {
-    const geoData = data.text;
-    const apiData = JSON.parse(geoData);
-    res.status(200).send(new City(getCity, apiData[0].display_name, apiData[0].lat, apiData[0].lon));
-  }).catch(error => {
-    res.status(404).send(`Something went wrong in LOCATION route ${error}`);
+
+  const selectSQL = `SELECT * FROM cityLocation WHERE search_query = '${getCity}'`;
+  const url = `https://eu1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${getCity}&format=json`;
+
+  client.query(selectSQL).then(result => {
+    let dataFromDB = result.rowCount;
+    if (dataFromDB) {
+      res.send(result.rows[0]);
+      console.log('data from DB ', dataFromDB);
+    } else {
+      superAgent.get(url).then(data => {
+        const geoData = data.text;
+        const apiData = JSON.parse(geoData);
+        res.send(new City(getCity, apiData[0].display_name, apiData[0].lat, apiData[0].lon));
+        const addToSQLTable = 'INSERT INTO cityLocation (search_query , formatted_query , latitude, longitude) VALUES ($1,$2,$3,$4) RETURNING *';
+        const insertValues = [getCity, apiData[0].display_name, apiData[0].lat, apiData[0].lon];
+        client.query(addToSQLTable, insertValues).then(data => {
+          console.log('Added data from API', data);
+        });
+      }).catch(error => {
+
+        res.status(404).send(`Something went wrong in LOCATION route ${error}`);
+      });
+    }
   });
 }
 
@@ -100,6 +119,11 @@ function errorHandler(req, res) {
 //-------------------------------------
 
 
-app.listen(PORT, () => {
-  console.log(`Open Port ${PORT}`);
-});
+
+client.connect().then(() => {
+  console.log('Connected to DB');
+  app.listen(PORT, () => {
+    console.log(`Open Port ${PORT}`);
+  });
+}
+);
