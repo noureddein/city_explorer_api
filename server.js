@@ -17,6 +17,7 @@ const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 const PARK_KEY = process.env.PARK_KEY;
 const MOVIE_API_KEY = process.env.MOVIE_API_KEY;
+const YELP_API_KEY = process.env.YELP_API_KEY;
 
 //Route Definitions
 app.get('/', welcomeHomePage);
@@ -24,6 +25,7 @@ app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 app.get('/parks', parksHandler);
 app.get('/movies', movieHandler);
+app.get('/yelp', yelpHandler);
 app.get('*', errorHandler);
 
 //----------------------------------------------
@@ -122,6 +124,7 @@ function Parks(name, address, description, url) {
 
 function movieHandler(req, res) {
   const city = req.query.search_query;
+  console.log(city);
   const url = 'https://api.themoviedb.org/3/movie/top_rated';
   let queryValues = {
     query: city,
@@ -147,6 +150,65 @@ function Movies(data) {
 }
 
 //---------------------------------------------------------
+
+/*
+[
+  {
+    "name": "Pike Place Chowder",
+    "image_url": "https://s3-media3.fl.yelpcdn.com/bphoto/ijju-wYoRAxWjHPTCxyQGQ/o.jpg",
+    "price": "$$   ",
+    "rating": "4.5",
+    "url": "https://www.yelp.com/biz/pike-place-chowder-seattle?adjust_creative=uK0rfzqjBmWNj6-d3ujNVA&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=uK0rfzqjBmWNj6-d3ujNVA"
+  },
+  {
+    "name": "Umi Sake House",
+    "image_url": "https://s3-media3.fl.yelpcdn.com/bphoto/c-XwgpadB530bjPUAL7oFw/o.jpg",
+    "price": "$$   ",
+    "rating": "4.0",
+    "url": "https://www.yelp.com/biz/umi-sake-house-seattle?adjust_creative=uK0rfzqjBmWNj6-d3ujNVA&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=uK0rfzqjBmWNj6-d3ujNVA"
+  },
+]
+
+*/
+
+
+//Yelp Handler Function
+function yelpHandler(req, res) {
+  const city = req.query.search_query;
+  const url = 'https://api.yelp.com/v3/businesses/search';
+  const yelpValues = {
+    location: city,
+    term: 'restaurants'
+  };
+  console.log(yelpValues);
+
+  superAgent.get(url, yelpValues).set('Authorization', `Bearer ${YELP_API_KEY}`).then(dataBack => {
+    let apiData = dataBack.body.businesses;
+    let data = [];
+    for (let i = 1; i <= 5; i++) {
+      data.push(new Yelp(apiData[i]));
+    }
+    res.status(200).send(data);
+
+  }).catch((error => {
+    res.status(404).send(`Something went wrong ${error}`);
+
+  }));
+}
+//Constructor Function
+
+function Yelp(data) {
+  this.name = data.name;
+  this.image_url = data.image_url;
+  this.price = data.price;
+  this.rating = data.rating;
+  this.url = data.url;
+}
+
+
+
+
+//----------------------------------------------------------
 
 //Error Handler function
 function errorHandler(req, res) {
