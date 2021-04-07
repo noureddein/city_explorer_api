@@ -16,12 +16,14 @@ const client = new pg.Client(DATABASE_URL);
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 const PARK_KEY = process.env.PARK_KEY;
+const MOVIE_API_KEY = process.env.MOVIE_API_KEY;
 
 //Route Definitions
 app.get('/', welcomeHomePage);
 app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 app.get('/parks', parksHandler);
+app.get('/movies', movieHandler);
 app.get('*', errorHandler);
 
 //----------------------------------------------
@@ -54,7 +56,6 @@ function locationHandler(req, res) {
           console.log('Added data from API', data);
         });
       }).catch(error => {
-
         res.status(404).send(`Something went wrong in LOCATION route ${error}`);
       });
     }
@@ -117,12 +118,44 @@ function Parks(name, address, description, url) {
 
 //---------------------------------------------------------
 
+//Movie Handler function
+
+function movieHandler(req, res) {
+  const city = req.query.search_query;
+  const url = 'https://api.themoviedb.org/3/movie/top_rated';
+  let queryValues = {
+    query: city,
+    api_key: MOVIE_API_KEY,
+  };
+  superAgent.get(url, queryValues).then(dataBack => {
+    const data = dataBack.body.results;
+    let resData = data.map(item => new Movies(item));
+    res.send(resData);
+  }).catch(error => res.status(500).send(`Something went wrong ${error}`));
+}
+
+//constructor Function
+function Movies(data) {
+  this.title = data.title;
+  this.overview = data.overview;
+  this.average_votes = data.vote_average;
+  this.total_votes = data.vote_count;
+  this.image_url = 'https://image.tmdb.org/t/p/w500' + data.poster_path;
+  this.popularity = data.popularity;
+  this.released_on = data.release_da;
+
+}
+
+//---------------------------------------------------------
+
 //Error Handler function
 function errorHandler(req, res) {
   res.status(500).send('Sorry, something went wrong');
 }
 
-//-------------------------------------
+//----------------------------------------------------------
+
+
 
 
 
