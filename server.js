@@ -18,6 +18,7 @@ const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 const PARK_KEY = process.env.PARK_KEY;
 
 //Route Definitions
+app.get('/', welcomeHomePage);
 app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 app.get('/parks', parksHandler);
@@ -26,6 +27,11 @@ app.get('*', errorHandler);
 //----------------------------------------------
 
 //Location Handler
+
+function welcomeHomePage(req, res) {
+  res.status(200).send('Welcome To My Home Page :)');
+}
+
 function locationHandler(req, res) {
   let getCity = req.query.city;
 
